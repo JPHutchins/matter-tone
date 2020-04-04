@@ -25,20 +25,39 @@ var synthTest = new Tone.PolySynth(50, Tone.Synth, {
     modulationType: "sawtooth",
     modulationIndex: 3,
     harmonicity: 3.4,
+    volume: 0.1,
   },
   envelope: {
     attack: 0.001,
     decay: 0.5,
     sustain: 2,
-    release: 5,
+    release: 1,
   },
 }).toMaster();
 
 const testTone = (note) => {
-  synthTest.voices.map(
-    (voice) => (voice.oscillator.modulationIndex.value = Math.random() * 100)
-  );
-  synthTest.triggerAttackRelease(note, "8n");
+  //   synthTest.voices.map((voice) => {
+  //     voice.oscillator.modulationIndex.value = Math.random() * 100;
+  //     console.log(voice.oscillator.modulationIndex.value);
+  //   });
+  synthTest.volume.value = -20;
+  console.log(synthTest);
+  synthTest.set({
+    oscillator: {
+      type: "fmsquare",
+      modulationType: "sawtooth",
+      modulationIndex: Math.random() * 4,
+      harmonicity: Math.random() * 4,
+    },
+    envelope: {
+      attack: 0.001,
+      decay: 0.5,
+      sustain: 2,
+      release: 1,
+    },
+  });
+  console.log(synthTest.get());
+  synthTest.triggerAttackRelease(note, "16n");
 };
 
 const Engine = Matter.Engine;
