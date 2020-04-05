@@ -3,6 +3,14 @@ console.log("hello");
 import Matter from "matter-js";
 import Tone from "tone";
 
+const AudioContext = window.AudioContext;
+let audioCtx;
+
+audioCtx = new AudioContext();
+
+const s = audioCtx.createOscillator();
+s.connect(audioCtx.destination);
+
 //create a synth and connect it to the master output (your speakers)
 var monoSynth = new Tone.Synth({
   oscillator: {
@@ -19,7 +27,7 @@ var monoSynth = new Tone.Synth({
   },
 }).toMaster();
 
-var synthTest = new Tone.PolySynth(50, Tone.Synth, {
+var synthTest = new Tone.PolySynth(20, Tone.Synth, {
   oscillator: {
     type: "fmsquare",
     modulationType: "sawtooth",
@@ -35,29 +43,43 @@ var synthTest = new Tone.PolySynth(50, Tone.Synth, {
   },
 }).toMaster();
 
+var membraneDrum = new Tone.MembraneSynth().toMaster();
+
+const playDrum = () => {
+  console.log("DRUM");
+  //membraneDrum.triggerAttackRelease("E2", "8n");
+};
+
 const testTone = (note) => {
   //   synthTest.voices.map((voice) => {
   //     voice.oscillator.modulationIndex.value = Math.random() * 100;
   //     console.log(voice.oscillator.modulationIndex.value);
   //   });
-  synthTest.volume.value = -20;
-  console.log(synthTest);
+  synthTest.volume.value = -40;
   synthTest.set({
     oscillator: {
       type: "fmsquare",
       modulationType: "sawtooth",
       modulationIndex: Math.random() * 4,
-      harmonicity: Math.random() * 4,
+      harmonicity: Math.floor(Math.random() * 15),
     },
     envelope: {
       attack: 0.001,
       decay: 0.5,
       sustain: 2,
-      release: 1,
+      release: 5,
     },
   });
-  console.log(synthTest.get());
-  synthTest.triggerAttackRelease(note, "16n");
+  //synthTest.triggerAttackRelease(note, "1n");
+  let s = audioCtx.createOscillator();
+  s.frequency.value = note;
+  s.start(audioCtx.currentTime);
+  s.connect(audioCtx.destination);
+  setTimeout(() => {
+    s.stop(audioCtx.currentTime);
+    s.disconnect(audioCtx.destination);
+    s = null;
+  }, 1000);
 };
 
 const Engine = Matter.Engine;
@@ -78,16 +100,25 @@ window.onload = () => {
   // create two boxes and a ground
   var boxA = Bodies.rectangle(400, 200, 80, 80);
   var boxB = Bodies.rectangle(450, 50, 80, 80);
-  var ground = Bodies.rectangle(400, 610, 810, 60, { isStatic: true });
-  const lWall = Bodies.rectangle(0, 305, 40, 610, { isStatic: true });
-  const rWall = Bodies.rectangle(810, 305, 40, 610, { isStatic: true });
-  const tWall = Bodies.rectangle(405, 0, 810, 60, { isStatic: true });
-  const ballA = Bodies.circle(150, 0, 50, {
+  var ground = Bodies.rectangle(400, 1050, 810, 1000, { isStatic: true });
+  const lWall = Bodies.rectangle(-400, 305, 1000, 610, { isStatic: true });
+  const rWall = Bodies.rectangle(1250, 305, 1000, 610, { isStatic: true });
+  const tWall = Bodies.rectangle(405, -400, 810, 1000, { isStatic: true });
+  const ballA = Bodies.circle(150, 0, 10, {
     restitution: 1,
+    friction: 0,
+    frictionAir: 0,
+    frictionStatic: 1,
+  });
+  const drum = Bodies.circle(405, 305, 60, {
+    restitution: 1,
+    friction: 0,
+    frictionAir: 0,
+    frictionStatic: 1,
   });
 
   // add all of the bodies to the world
-  World.add(engine.world, [ground, lWall, rWall, tWall, ballA]);
+  World.add(engine.world, [ground, lWall, rWall, tWall, drum, ballA]);
   engine.world.gravity.y = 0;
 
   const mouse = Matter.Mouse.create(render.canvas);
@@ -102,22 +133,27 @@ window.onload = () => {
 
   // run the renderer
   Render.run(render);
-  testTone();
 
   Matter.Events.on(engine, "collisionStart", (event) => {
     const pairs = event.pairs;
     for (const pair of pairs) {
       if (pair.bodyA === lWall && pair.bodyB === ballA) {
-        testTone("C4");
+        testTone(100);
       }
       if (pair.bodyA === ground && pair.bodyB === ballA) {
-        testTone("G3");
+        testTone(200);
       }
       if (pair.bodyA === tWall && pair.bodyB === ballA) {
-        testTone("E4");
+        testTone(300);
       }
       if (pair.bodyA === rWall && pair.bodyB === ballA) {
-        testTone("D4");
+        testTone(400);
+      }
+      if (pair.bodyA === drum && pair.bodyB === ballA) {
+        playDrum();
+      }
+      if (pair.bodyB === drum && pair.bodyA === ballA) {
+        playDrum();
       }
     }
   });
